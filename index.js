@@ -22,16 +22,18 @@ const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
  */
 function getMetadata(filePath) {
   try {
-    const command = `ffprobe -v quiet -print_format json -show_format "${filePath}"`;
+    const command = `ffprobe -v quiet -print_format json -show_streams -show_format "${filePath}"`;
     const output = execSync(command, { encoding: "utf8" });
     const metadata = JSON.parse(output);
+
+    const audioStream = metadata.streams.find(stream => stream.codec_type === "audio");
 
     return {
       file: path.basename(filePath),
       extension: path.extname(filePath),
-      codec: metadata.format.format_name || "Unknown",
+      codec: audioStream ? audioStream.codec_name : "Unknown",
       bitrate: metadata.format.bit_rate ? `${(metadata.format.bit_rate / 1000).toFixed(1)} kbps` : "Unknown",
-      sampleRate: metadata.format.sample_rate ? `${metadata.format.sample_rate} Hz` : "Unknown"
+      sampleRate: audioStream ? `${audioStream.sample_rate} Hz` : "Unknown"
     };
   } catch (error) {
     console.error(`Error processing ${filePath}:`, error instanceof Error ? error.message : error);
