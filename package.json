@@ -1,0 +1,9 @@
+{
+  "name": "audio-logger",
+  "type": "module",
+  "bin": "index.js",
+  "devDependencies": {
+    "@types/node": "^22.13.3",
+    "typescript": "^5.7.3"
+  }
+}
