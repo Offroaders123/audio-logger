@@ -4,7 +4,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 
-const MUSIC_DIR = "/Users/yourname/Music"; // Change this to your music folder
+if (process.argv.length < 3) {
+  console.error("Usage: ./audio-logger <music_directory>");
+  process.exit(1);
+}
+
+/** @type {string} */
+const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
 const OUTPUT_LOG = "music_metadata.log";
 
 /**
