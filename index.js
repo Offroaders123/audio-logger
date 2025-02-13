@@ -41,29 +41,26 @@ function getMetadata(filePath) {
 
 /**
  * @param {string} dir
- * @returns {Metadata[]}
+ * @returns {Generator<Metadata, void, void>}
  */
-function processDirectory(dir) {
+function* processDirectory(dir) {
   const files = fs.readdirSync(dir);
-  /** @type {Metadata[]} */
-  let results = [];
 
   for (const file of files) {
     const filePath = path.join(dir, file);
     const stat = fs.statSync(filePath);
 
     if (stat.isDirectory()) {
-      results = results.concat(processDirectory(filePath));
+      yield* processDirectory(filePath);
     } else if (/\.(mp3|flac|wav|m4a|aac|ogg|wma)$/i.test(file)) {
       const metadata = getMetadata(filePath);
-      if (metadata) results.push(metadata);
+      if (metadata) yield metadata;
     }
   }
-  return results;
 }
 
 // Run the script
-/** @type {Metadata[]} */
+/** @type {Generator<Metadata>} */
 const metadataList = processDirectory(MUSIC_DIR);
 
 // Log results
