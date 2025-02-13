@@ -11,7 +11,6 @@ if (process.argv.length < 3) {
 
 /** @type {string} */
 const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
-const OUTPUT_LOG = "music_metadata.log";
 
 /**
  * @typedef {{ file: string; extension: string; codec: any; bitrate: string; sampleRate: string; }} Metadata
@@ -67,11 +66,12 @@ function processDirectory(dir) {
 /** @type {Metadata[]} */
 const metadataList = processDirectory(MUSIC_DIR);
 
-// Write to log file
-/** @type {string} */
-const logData = metadataList.map(entry =>
-  `${entry.file} (${entry.extension})\nCodec: ${entry.codec}\nBitrate: ${entry.bitrate}\nSample Rate: ${entry.sampleRate}\n`
-).join("\n");
-
-fs.writeFileSync(OUTPUT_LOG, logData);
-console.log(`Metadata logged to ${OUTPUT_LOG}`);
+// Log results
+for (const entry of metadataList) {
+  console.log(
+    `\n${entry.file} (${entry.extension})` +
+    `\nCodec: ${entry.codec}` +
+    `\nBitrate: ${entry.bitrate}` +
+    `\nSample Rate: ${entry.sampleRate}\n`
+  );
+}
