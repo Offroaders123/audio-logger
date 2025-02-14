@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readdirSync, statSync } from 'fs';
+import { readdir, stat } from 'fs/promises';
 import { resolve, extname, relative, sep, basename, join } from 'path';
 import ffprobe from 'ffprobe';
 import ffprobeStatic from 'ffprobe-static';
@@ -71,13 +71,13 @@ function extractMusicInfo(filePath) {
  * @returns {AsyncGenerator<Metadata, void, void>}
  */
 async function* processDirectory(dir) {
-  const files = readdirSync(dir);
+  const files = await readdir(dir);
 
   for (const file of files) {
     const filePath = join(dir, file);
-    const stat = statSync(filePath);
+    const stats = await stat(filePath);
 
-    if (stat.isDirectory()) {
+    if (stats.isDirectory()) {
       yield* processDirectory(filePath);
     } else if (/\.(mp3|flac|wav|m4a|aac|ogg|wma)$/i.test(file)) {
       const metadata = await getMetadata(filePath);
