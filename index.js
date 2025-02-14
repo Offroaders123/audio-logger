@@ -11,7 +11,7 @@ if (process.argv.length < 3) {
 }
 
 /** @type {string} */
-const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
+const MUSIC_DIR = path.resolve(/** @type {string} */ (process.argv[2])); // Ensure absolute path
 
 /**
  * @typedef {{ file: string; extension: string; codec: string; bitrate: string; sampleRate: string; artist: string; album: string; title: string; }} Metadata
@@ -48,7 +48,10 @@ async function getMetadata(filePath) {
 
 /**
  * Extracts Artist, Album, and Title from the file path.
- * Assumes the structure: /Artist/Album/Song.ext
+ * Works with both:
+ *   - Full music directory `/Users/brandon/Music/Music/Media/Music/`
+ *   - Artist folders `/Users/brandon/Music/Music/Media/Music/Himiko Kikuchi/`
+ *   - Album folders `/Users/brandon/Music/Music/Media/Music/Himiko Kikuchi/Album Name`
  * @param {string} filePath
  * @returns {{ artist: string; album: string; title: string }}
  */
@@ -57,9 +60,9 @@ function extractMusicInfo(filePath) {
   const pathParts = relativePath.split(path.sep);
 
   return {
-    artist: pathParts.length > 2 ? pathParts[pathParts.length - 3] : "Unknown Artist",
-    album: pathParts.length > 1 ? pathParts[pathParts.length - 2] : "Unknown Album",
-    title: path.basename(filePath, path.extname(filePath)) // Remove extension for title
+    artist: pathParts.length >= 1 ? pathParts[0] : "Unknown Artist",
+    album: pathParts.length >= 2 ? pathParts[1] : "Unknown Album",
+    title: pathParts.length >= 3 ? path.basename(pathParts[2], path.extname(pathParts[2])) : "Unknown Title",
   };
 }
 
