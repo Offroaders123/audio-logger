@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { readdir, stat, writeFile } from 'fs/promises';
-import { resolve, extname, relative, sep, basename, join } from 'path';
-import ffprobe from 'ffprobe';
-import ffprobeStatic from 'ffprobe-static';
+import { readdir, stat, writeFile } from "node:fs/promises";
+import { extname, relative, sep, basename, join } from "node:path";
+import ffprobe from "ffprobe";
+import { path as ffprobeStaticPath } from "ffprobe-static";
 
 if (process.argv.length < 3) {
   console.error("Usage: ./audio-logger <music_directory> [-o]");
@@ -11,9 +11,10 @@ if (process.argv.length < 3) {
 }
 
 /** @type {string} */
-const MUSIC_DIR = resolve(/** @type {string} */ (process.argv[2])); // Ensure absolute path
+const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
 /** @type {boolean} */
 const SAVE_LOG = process.argv.some(arg => arg === "-o");
+/** @type {string} */
 const OUTPUT_LOG = "music_metadata.log";
 
 /**
@@ -27,10 +28,10 @@ const OUTPUT_LOG = "music_metadata.log";
  */
 async function getMetadata(filePath) {
   try {
-    const metadata = await ffprobe(filePath, { path: ffprobeStatic.path });
-
-    const audioStream = metadata.streams.find(stream => stream.codec_type === "audio");
-
+    /** @type {import("ffprobe").FFProbeResult} */
+    const metadata = await ffprobe(filePath, { path: ffprobeStaticPath });
+    /** @type {import("ffprobe").FFProbeStream | null} */
+    const audioStream = metadata.streams.find(stream => stream.codec_type === "audio") ?? null;
     const { artist, album, title } = extractMusicInfo(filePath);
 
     return {
@@ -52,14 +53,16 @@ async function getMetadata(filePath) {
 /**
  * Extracts Artist, Album, and Title from the file path.
  * Works with both:
- *   - Full music directory `/Users/brandon/Music/Music/Media/Music/`
- *   - Artist folders `/Users/brandon/Music/Music/Media/Music/Himiko Kikuchi/`
- *   - Album folders `/Users/brandon/Music/Music/Media/Music/Himiko Kikuchi/Album Name`
+ *   - Full music directory `~/Music/Music/Media/Music/`
+ *   - Artist folders `~/Music/Music/Media/Music/<artist>/`
+ *   - Album folders `~/Music/Music/Media/Music/<artist>/<album>/`
  * @param {string} filePath
  * @returns {{ artist: string; album: string; title: string }}
  */
 function extractMusicInfo(filePath) {
+  /** @type {string} */
   const relativePath = relative(MUSIC_DIR, filePath);
+  /** @type {string[]} */
   const pathParts = relativePath.split(sep);
 
   return {
@@ -74,15 +77,19 @@ function extractMusicInfo(filePath) {
  * @returns {AsyncGenerator<Metadata, void, void>}
  */
 async function* processDirectory(dir) {
+  /** @type {string[]} */
   const files = await readdir(dir);
 
   for (const file of files) {
+    /** @type {string} */
     const filePath = join(dir, file);
+    /** @type {import("node:fs").Stats} */
     const stats = await stat(filePath);
 
     if (stats.isDirectory()) {
       yield* processDirectory(filePath);
     } else if (/\.(mp3|flac|wav|m4a|aac|ogg|wma)$/i.test(file)) {
+      /** @type {Metadata | null} */
       const metadata = await getMetadata(filePath);
       if (metadata) yield metadata;
     }
