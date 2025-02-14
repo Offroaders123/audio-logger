@@ -95,15 +95,16 @@ const metadataList = processDirectory(MUSIC_DIR);
 
 /**
  * @param {Metadata} entry
+ * @returns {string}
  */
-function prettyMetadata(entry) {
-  return (
-    `\n${entry.title} (${entry.extension})` +
-    `\n${entry.artist} - ${entry.album}` +
-    `\nCodec: ${entry.codec}` +
-    `\nBitrate: ${entry.bitrate}` +
-    `\nSample Rate: ${entry.sampleRate}\n`
-  );
+function prettyMetadata({ artist, album, title, extension, codec, bitrate, sampleRate }) {
+  return `\
+${title} (${extension})
+${artist} - ${album}
+Codec: ${codec}
+Bitrate: ${bitrate}
+Sample Rate: ${sampleRate}\
+`;
 }
 
 if (!SAVE_LOG) {
