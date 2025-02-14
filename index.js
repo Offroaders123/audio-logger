@@ -1,27 +1,7 @@
-#!/usr/bin/env node
-
 import { readdir, stat } from "node:fs/promises";
 import { extname, relative, sep, basename, join } from "node:path";
-import { argv } from "node:process";
 import ffprobe from "ffprobe";
 import { path as ffprobeStaticPath } from "ffprobe-static";
-
-/**
- * @returns {never}
- */
-function exitUsage() {
-  console.error("Usage: ./audio-logger <music_directory> [-p]");
-  process.exit(1);
-}
-
-if (argv.length > 4) {
-  exitUsage();
-}
-
-/** @type {string} */
-const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
-/** @type {boolean} */
-const PRETTY_OUT = argv.length === 4 && (argv.at(3) === "-p" || exitUsage());
 
 /**
  * @typedef {{
@@ -38,16 +18,17 @@ const PRETTY_OUT = argv.length === 4 && (argv.at(3) === "-p" || exitUsage());
 
 /**
  * Extracts metadata from an audio file.
+ * @param {string} musicDir
  * @param {string} filePath
  * @returns {Promise<Metadata | null>}
  */
-async function getMetadata(filePath) {
+async function getMetadata(musicDir, filePath) {
   try {
     /** @type {import("ffprobe").FFProbeResult} */
     const metadata = await ffprobe(filePath, { path: ffprobeStaticPath });
     /** @type {import("ffprobe").FFProbeStream | null} */
     const audioStream = metadata.streams.find(stream => stream.codec_type === "audio") ?? null;
-    const { artist, album, title } = extractMusicInfo(filePath);
+    const { artist, album, title } = extractMusicInfo(musicDir, filePath);
 
     return {
       path: filePath,
@@ -71,6 +52,7 @@ async function getMetadata(filePath) {
  *   - Full music directory `~/Music/Music/Media/Music/`
  *   - Artist folders `~/Music/Music/Media/Music/<artist>/`
  *   - Album folders `~/Music/Music/Media/Music/<artist>/<album>/`
+ * @param {string} musicDir
  * @param {string} filePath
  * @returns {{
  * title: string;
@@ -78,9 +60,9 @@ async function getMetadata(filePath) {
  * album?: string;
  * }}
  */
-function extractMusicInfo(filePath) {
+function extractMusicInfo(musicDir, filePath) {
   /** @type {string} */
-  const relativePath = relative(MUSIC_DIR, filePath);
+  const relativePath = relative(musicDir, filePath);
   /** @type {string[]} */
   const pathParts = relativePath.split(sep);
 
@@ -95,7 +77,7 @@ function extractMusicInfo(filePath) {
  * @param {string} dir
  * @returns {AsyncGenerator<string, void, void>}
  */
-async function* collectFiles(dir) {
+export async function* collectFiles(dir) {
   /** @type {string[]} */
   const files = await readdir(dir);
 
@@ -114,30 +96,24 @@ async function* collectFiles(dir) {
 }
 
 /**
+ * @param {string} musicDir
  * @param {AsyncGenerator<string, void, void>} files
  * @returns {AsyncGenerator<Metadata, void, void>}
 */
-async function* processFiles(files) {
+export async function* processFiles(musicDir, files) {
   for await (const filePath of files) {
     /** @type {Metadata | null} */
-    const metadata = await getMetadata(filePath);
+    const metadata = await getMetadata(musicDir, filePath);
     if (!metadata) continue;
     yield metadata;
   }
 }
 
-// Run the script
-/** @type {AsyncGenerator<string, void, void>} */
-const files = collectFiles(MUSIC_DIR);
-
-/** @type {AsyncGenerator<Metadata, void, void>} */
-const metadataList = processFiles(files);
-
 /**
  * @param {Metadata} entry
  * @returns {string}
  */
-function prettyMetadata({
+export function prettyMetadata({
   title,
   artist,
   album,
@@ -153,17 +129,4 @@ Codec Name: ${codec_name}
 Bit Rate: ${bit_rate ?? "<unknown>"} kbps
 Sample Rate: ${sample_rate ?? "<unknown>"} kHz
 `;
-}
-
-// Log results
-if (PRETTY_OUT) {
-  for await (const entry of metadataList) {
-    console.log(prettyMetadata(entry));
-  }
-} else {
-  /** @type {Metadata[]} */
-  const results = (await Array.fromAsync(metadataList));
-  /** @type {string} */
-  const json = JSON.stringify(results, null, 2);
-  console.log(json);
 }
