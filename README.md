@@ -4,6 +4,24 @@ Debugging audio bitrate inconsistencies throughout my music library!
 
 Started to realize my Bandcamp downloads weren't encoding in the highest of resolution, compared to other songs in my 'iTunes' library (I still sync my music, I don't use Apple Music in terms of streaming, just the 'Music' app itself on macOS).
 
+## Install
+
+```sh
+npm install --global git+https://github.com/Offroaders123/audio-logger.git
+```
+
+## Usage
+
+There are two arguments you can pass into this script, the first one is required, it's the path of files you'd like to traverse for logging. The second is a boolean flag for whether you want to pretty-print this output, and whether it will be logged incrementally as it is parsed (niced for debugging before waiting for the entire output of big datasets like an entire music library). By default, the script will be blocking and will output the data as plain JSON.
+
+```sh
+audio-logger ~/Music/Music/Media/Music/ -p
+```
+
+There is also a JS API that you can call too, if you were to import this script as a module inside of your own JS code. The helper function `getMetadataList()` works the easiest, it simply accepts a single path string.
+
+## Background
+
 I discovered that some of the bitrates might be lower than I would like, and it's not necessarily `aac`/`.m4a` that's the issue, as I have essentially been happy with the quality of iTunes Store downloads for the longest time. I can definitely notice the different in quality for high dynamic range content I've downloaded from Bandcamp though, and I think I simply just need to download the lossless copies, then re-encode them on my own to either `alac` or `aac` with a higher bitrate than what it currently uses. I noticed this over the last while with:
 
 - Illegal Aliens - Demiurgs of Plancklengthville
