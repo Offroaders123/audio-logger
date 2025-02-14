@@ -22,8 +22,8 @@ const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
  * album: string;
  * extension: string;
  * codec_name: string;
- * bit_rate: string;
- * sample_rate: string;
+ * bit_rate?: number;
+ * sample_rate?: number;
  * }} Metadata
  */
 
@@ -47,8 +47,8 @@ async function getMetadata(filePath) {
       album,
       extension: extname(filePath),
       codec_name: audioStream?.codec_name || "Unknown",
-      bit_rate: audioStream?.bit_rate ? `${(audioStream.bit_rate / 1000).toFixed(1)} kbps` : "Unknown",
-      sample_rate: audioStream?.sample_rate ? `${audioStream.sample_rate / 1000} kHz` : "Unknown"
+      bit_rate: typeof audioStream?.bit_rate !== "undefined" ? (audioStream.bit_rate / 1000) : undefined,
+      sample_rate: typeof audioStream?.sample_rate !== "undefined" ? audioStream.sample_rate / 1000 : undefined
     };
   } catch (error) {
     console.error(`Error processing ${filePath}:`, error instanceof Error ? error.message : error);
@@ -141,8 +141,8 @@ function prettyMetadata({
 ${title} (${extension})
 ${artist} - ${album}
 Codec Name: ${codec_name}
-Bit Rate: ${bit_rate}
-Sample Rate: ${sample_rate}
+Bit Rate: ${bit_rate} kbps
+Sample Rate: ${sample_rate} kHz
 `;
 }
 
