@@ -2,10 +2,11 @@
 
 import { readdir, stat } from "node:fs/promises";
 import { extname, relative, sep, basename, join } from "node:path";
+import { argv } from "node:process";
 import ffprobe from "ffprobe";
 import { path as ffprobeStaticPath } from "ffprobe-static";
 
-if (process.argv.length !== 3) {
+if (argv.length !== 3) {
   console.error("Usage: ./audio-logger <music_directory>");
   process.exit(1);
 }
@@ -35,7 +36,7 @@ async function getMetadata(filePath) {
       extension: extname(filePath),
       codec: audioStream?.codec_name || "Unknown",
       bitrate: audioStream?.bit_rate ? `${(audioStream.bit_rate / 1000).toFixed(1)} kbps` : "Unknown",
-      sampleRate: audioStream?.sample_rate ? `${audioStream.sample_rate} Hz` : "Unknown",
+      sampleRate: audioStream?.sample_rate ? `${audioStream.sample_rate / 1000} kHz` : "Unknown",
       artist,
       album,
       title
