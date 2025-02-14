@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 
-import { readdir, stat } from 'fs/promises';
+import { readdir, stat, writeFile } from 'fs/promises';
 import { resolve, extname, relative, sep, basename, join } from 'path';
 import ffprobe from 'ffprobe';
 import ffprobeStatic from 'ffprobe-static';
 
 if (process.argv.length < 3) {
-  console.error("Usage: ./audio-logger <music_directory>");
+  console.error("Usage: ./audio-logger <music_directory> [-o]");
   process.exit(1);
 }
 
 /** @type {string} */
 const MUSIC_DIR = resolve(/** @type {string} */ (process.argv[2])); // Ensure absolute path
+/** @type {boolean} */
+const SAVE_LOG = process.argv.some(arg => arg === "-o");
+const OUTPUT_LOG = "music_metadata.log";
 
 /**
  * @typedef {{ file: string; extension: string; codec: string; bitrate: string; sampleRate: string; artist: string; album: string; title: string; }} Metadata
@@ -90,13 +93,33 @@ async function* processDirectory(dir) {
 /** @type {AsyncGenerator<Metadata>} */
 const metadataList = processDirectory(MUSIC_DIR);
 
-// Log results
-for await (const entry of metadataList) {
-  console.log(
+/**
+ * @param {Metadata} entry
+ */
+function prettyMetadata(entry) {
+  return (
     `\n${entry.title} (${entry.extension})` +
     `\n${entry.artist} - ${entry.album}` +
     `\nCodec: ${entry.codec}` +
     `\nBitrate: ${entry.bitrate}` +
     `\nSample Rate: ${entry.sampleRate}\n`
   );
+}
+
+if (!SAVE_LOG) {
+  // Log results
+  for await (const entry of metadataList) {
+    console.log(prettyMetadata(entry));
+  }
+} else {
+  console.log("Calculating metadata... (may take some time)");
+
+  // Write to log file
+  /** @type {string} */
+  const logData = (await Array.fromAsync(metadataList))
+    .map(prettyMetadata)
+    .join("\n");
+
+  await writeFile(OUTPUT_LOG, logData);
+  console.log(`Metadata logged to '${OUTPUT_LOG}'`);
 }
