@@ -60,9 +60,9 @@ function extractMusicInfo(filePath) {
   const pathParts = relativePath.split(sep);
 
   return {
-    artist: pathParts.length >= 1 ? pathParts[0] : "Unknown Artist",
-    album: pathParts.length >= 2 ? pathParts[1] : "Unknown Album",
-    title: pathParts.length >= 3 ? basename(pathParts[2], extname(pathParts[2])) : "Unknown Title",
+    artist: pathParts.at(-3) ?? "<artist>",
+    album: pathParts.at(-2) ?? "<album>",
+    title: basename(filePath, extname(filePath))
   };
 }
 
