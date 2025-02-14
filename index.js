@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import * as fs from 'fs';
-import * as path from 'path';
+import { readdirSync, statSync } from 'fs';
+import { resolve, extname, relative, sep, basename, join } from 'path';
 import ffprobe from 'ffprobe';
 import ffprobeStatic from 'ffprobe-static';
 
@@ -11,7 +11,7 @@ if (process.argv.length < 3) {
 }
 
 /** @type {string} */
-const MUSIC_DIR = path.resolve(/** @type {string} */ (process.argv[2])); // Ensure absolute path
+const MUSIC_DIR = resolve(/** @type {string} */ (process.argv[2])); // Ensure absolute path
 
 /**
  * @typedef {{ file: string; extension: string; codec: string; bitrate: string; sampleRate: string; artist: string; album: string; title: string; }} Metadata
@@ -32,7 +32,7 @@ async function getMetadata(filePath) {
 
     return {
       file: filePath,
-      extension: path.extname(filePath),
+      extension: extname(filePath),
       codec: audioStream?.codec_name || "Unknown",
       bitrate: audioStream?.bit_rate ? `${(audioStream.bit_rate / 1000).toFixed(1)} kbps` : "Unknown",
       sampleRate: audioStream?.sample_rate ? `${audioStream.sample_rate} Hz` : "Unknown",
@@ -56,13 +56,13 @@ async function getMetadata(filePath) {
  * @returns {{ artist: string; album: string; title: string }}
  */
 function extractMusicInfo(filePath) {
-  const relativePath = path.relative(MUSIC_DIR, filePath);
-  const pathParts = relativePath.split(path.sep);
+  const relativePath = relative(MUSIC_DIR, filePath);
+  const pathParts = relativePath.split(sep);
 
   return {
     artist: pathParts.length >= 1 ? pathParts[0] : "Unknown Artist",
     album: pathParts.length >= 2 ? pathParts[1] : "Unknown Album",
-    title: pathParts.length >= 3 ? path.basename(pathParts[2], path.extname(pathParts[2])) : "Unknown Title",
+    title: pathParts.length >= 3 ? basename(pathParts[2], extname(pathParts[2])) : "Unknown Title",
   };
 }
 
@@ -71,11 +71,11 @@ function extractMusicInfo(filePath) {
  * @returns {AsyncGenerator<Metadata, void, void>}
  */
 async function* processDirectory(dir) {
-  const files = fs.readdirSync(dir);
+  const files = readdirSync(dir);
 
   for (const file of files) {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
+    const filePath = join(dir, file);
+    const stat = statSync(filePath);
 
     if (stat.isDirectory()) {
       yield* processDirectory(filePath);
