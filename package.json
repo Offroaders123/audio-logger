@@ -2,7 +2,13 @@
   "name": "audio-logger",
   "type": "module",
   "bin": "index.js",
+  "dependencies": {
+    "ffprobe": "^1.1.2",
+    "ffprobe-static": "^3.1.0"
+  },
   "devDependencies": {
+    "@types/ffprobe": "^1.1.8",
+    "@types/ffprobe-static": "^2.0.3",
     "@types/node": "^22.13.3",
     "typescript": "^5.7.3"
   }

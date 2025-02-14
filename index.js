@@ -2,7 +2,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import ffprobe from 'ffprobe';
+import ffprobeStatic from 'ffprobe-static';
 
 if (process.argv.length < 3) {
   console.error("Usage: ./audio-logger <music_directory>");
@@ -13,27 +14,25 @@ if (process.argv.length < 3) {
 const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
 
 /**
- * @typedef {{ file: string; extension: string; codec: any; bitrate: string; sampleRate: string; }} Metadata
+ * @typedef {{ file: string; extension: string; codec: string; bitrate: string; sampleRate: string; }} Metadata
  */
 
 /**
  * @param {string} filePath
- * @returns {Metadata | null}
+ * @returns {Promise<Metadata | null>}
  */
-function getMetadata(filePath) {
+async function getMetadata(filePath) {
   try {
-    const command = `ffprobe -v quiet -print_format json -show_streams -show_format "${filePath}"`;
-    const output = execSync(command, { encoding: "utf8" });
-    const metadata = JSON.parse(output);
+    const metadata = await ffprobe(filePath, { path: ffprobeStatic.path });
 
     const audioStream = metadata.streams.find(stream => stream.codec_type === "audio");
 
     return {
       file: path.basename(filePath),
       extension: path.extname(filePath),
-      codec: audioStream ? audioStream.codec_name : "Unknown",
-      bitrate: metadata.format.bit_rate ? `${(metadata.format.bit_rate / 1000).toFixed(1)} kbps` : "Unknown",
-      sampleRate: audioStream ? `${audioStream.sample_rate} Hz` : "Unknown"
+      codec: audioStream?.codec_name || "Unknown",
+      bitrate: audioStream?.bit_rate ? `${(audioStream.bit_rate / 1000).toFixed(1)} kbps` : "Unknown",
+      sampleRate: audioStream?.sample_rate ? `${audioStream.sample_rate} Hz` : "Unknown"
     };
   } catch (error) {
     console.error(`Error processing ${filePath}:`, error instanceof Error ? error.message : error);
@@ -43,9 +42,9 @@ function getMetadata(filePath) {
 
 /**
  * @param {string} dir
- * @returns {Generator<Metadata, void, void>}
+ * @returns {AsyncGenerator<Metadata, void, void>}
  */
-function* processDirectory(dir) {
+async function* processDirectory(dir) {
   const files = fs.readdirSync(dir);
 
   for (const file of files) {
@@ -55,18 +54,18 @@ function* processDirectory(dir) {
     if (stat.isDirectory()) {
       yield* processDirectory(filePath);
     } else if (/\.(mp3|flac|wav|m4a|aac|ogg|wma)$/i.test(file)) {
-      const metadata = getMetadata(filePath);
+      const metadata = await getMetadata(filePath);
       if (metadata) yield metadata;
     }
   }
 }
 
 // Run the script
-/** @type {Generator<Metadata>} */
+/** @type {AsyncGenerator<Metadata>} */
 const metadataList = processDirectory(MUSIC_DIR);
 
 // Log results
-for (const entry of metadataList) {
+for await (const entry of metadataList) {
   console.log(
     `\n${entry.file} (${entry.extension})` +
     `\nCodec: ${entry.codec}` +
