@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { argv } from "node:process";
-import { collectFiles, processFiles, prettyMetadata } from "./index.js";
+import { getMetadataList, prettyMetadata } from "./index.js";
 
 /**
  * @returns {never}
@@ -21,11 +21,8 @@ const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
 const PRETTY_OUT = argv.length === 4 && (argv.at(3) === "-p" || exitUsage());
 
 // Run the script
-/** @type {AsyncGenerator<string, void, void>} */
-const files = collectFiles(MUSIC_DIR);
-
 /** @type {AsyncGenerator<import("./index.js").Metadata, void, void>} */
-const metadataList = processFiles(MUSIC_DIR, files);
+const metadataList = getMetadataList(MUSIC_DIR);
 
 // Log results
 if (PRETTY_OUT) {
