@@ -74,9 +74,9 @@ function extractMusicInfo(filePath) {
 
 /**
  * @param {string} dir
- * @returns {AsyncGenerator<Metadata, void, void>}
+ * @returns {AsyncGenerator<string, void, void>}
  */
-async function* processDirectory(dir) {
+async function* collectFiles(dir) {
   /** @type {string[]} */
   const files = await readdir(dir);
 
@@ -87,18 +87,32 @@ async function* processDirectory(dir) {
     const stats = await stat(filePath);
 
     if (stats.isDirectory()) {
-      yield* processDirectory(filePath);
+      yield* collectFiles(filePath);
     } else if (/\.(mp3|flac|wav|m4a|aac|ogg|wma)$/i.test(file)) {
-      /** @type {Metadata | null} */
-      const metadata = await getMetadata(filePath);
-      if (metadata) yield metadata;
+      yield filePath;
     }
   }
 }
 
+/**
+ * @param {AsyncGenerator<string, void, void>} files
+ * @returns {AsyncGenerator<Metadata, void, void>}
+*/
+async function* processFiles(files) {
+  for await (const filePath of files) {
+    /** @type {Metadata | null} */
+    const metadata = await getMetadata(filePath);
+    if (!metadata) continue;
+    yield metadata;
+  }
+}
+
 // Run the script
-/** @type {AsyncGenerator<Metadata>} */
-const metadataList = processDirectory(MUSIC_DIR);
+/** @type {AsyncGenerator<string, void, void>} */
+const files = collectFiles(MUSIC_DIR);
+
+/** @type {AsyncGenerator<Metadata, void, void>} */
+const metadataList = processFiles(files);
 
 /**
  * @param {Metadata} entry
