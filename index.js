@@ -17,6 +17,22 @@ import { path as ffprobeStaticPath } from "ffprobe-static";
  */
 
 /**
+ * An abstraction over the top of the generator API.
+ * 
+ * @param {string} musicDir
+ * @returns {Promise<Metadata[]>}
+ */
+export async function getMetadataList(musicDir) {
+  /** @type {AsyncGenerator<string, void, void>} */
+  const files = collectFiles(musicDir);
+
+  /** @type {AsyncGenerator<import("./index.js").Metadata, void, void>} */
+  const metadataList = processFiles(musicDir, files);
+
+  return Array.fromAsync(metadataList);
+}
+
+/**
  * Extracts metadata from an audio file.
  * @param {string} musicDir
  * @param {string} filePath
