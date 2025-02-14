@@ -15,7 +15,16 @@ if (argv.length !== 3) {
 const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
 
 /**
- * @typedef {{ file: string; extension: string; codec: string; bitrate: string; sampleRate: string; artist: string; album: string; title: string; }} Metadata
+ * @typedef {{
+ * path: string;
+ * title: string;
+ * artist: string;
+ * album: string;
+ * extension: string;
+ * codec_name: string;
+ * bit_rate: string;
+ * sample_rate: string;
+ * }} Metadata
  */
 
 /**
@@ -32,14 +41,14 @@ async function getMetadata(filePath) {
     const { artist, album, title } = extractMusicInfo(filePath);
 
     return {
-      file: filePath,
-      extension: extname(filePath),
-      codec: audioStream?.codec_name || "Unknown",
-      bitrate: audioStream?.bit_rate ? `${(audioStream.bit_rate / 1000).toFixed(1)} kbps` : "Unknown",
-      sampleRate: audioStream?.sample_rate ? `${audioStream.sample_rate / 1000} kHz` : "Unknown",
+      path: filePath,
+      title,
       artist,
       album,
-      title
+      extension: extname(filePath),
+      codec_name: audioStream?.codec_name || "Unknown",
+      bit_rate: audioStream?.bit_rate ? `${(audioStream.bit_rate / 1000).toFixed(1)} kbps` : "Unknown",
+      sample_rate: audioStream?.sample_rate ? `${audioStream.sample_rate / 1000} kHz` : "Unknown"
     };
   } catch (error) {
     console.error(`Error processing ${filePath}:`, error instanceof Error ? error.message : error);
@@ -54,7 +63,11 @@ async function getMetadata(filePath) {
  *   - Artist folders `~/Music/Music/Media/Music/<artist>/`
  *   - Album folders `~/Music/Music/Media/Music/<artist>/<album>/`
  * @param {string} filePath
- * @returns {{ artist: string; album: string; title: string }}
+ * @returns {{
+ * title: string;
+ * artist: string;
+ * album: string;
+ * }}
  */
 function extractMusicInfo(filePath) {
   /** @type {string} */
@@ -63,9 +76,9 @@ function extractMusicInfo(filePath) {
   const pathParts = relativePath.split(sep);
 
   return {
+    title: basename(filePath, extname(filePath)),
     artist: pathParts.at(-3) ?? "<artist>",
-    album: pathParts.at(-2) ?? "<album>",
-    title: basename(filePath, extname(filePath))
+    album: pathParts.at(-2) ?? "<album>"
   };
 }
 
@@ -115,13 +128,21 @@ const metadataList = processFiles(files);
  * @param {Metadata} entry
  * @returns {string}
  */
-function prettyMetadata({ artist, album, title, extension, codec, bitrate, sampleRate }) {
+function prettyMetadata({
+  title,
+  artist,
+  album,
+  extension,
+  codec_name,
+  bit_rate,
+  sample_rate
+}) {
   return `\
 ${title} (${extension})
 ${artist} - ${album}
-Codec: ${codec}
-Bitrate: ${bitrate}
-Sample Rate: ${sampleRate}
+Codec Name: ${codec_name}
+Bit Rate: ${bit_rate}
+Sample Rate: ${sample_rate}
 `;
 }
 
