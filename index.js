@@ -16,6 +16,7 @@ const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
 const SAVE_LOG = process.argv.some(arg => arg === "-o");
 /** @type {string} */
 const OUTPUT_LOG = "music_metadata.log";
+const MAX_CONCURRENT = 10; // Limit concurrent file processing
 
 /**
  * @typedef {{ file: string; extension: string; codec: string; bitrate: string; sampleRate: string; artist: string; album: string; title: string; }} Metadata
@@ -74,31 +75,68 @@ function extractMusicInfo(filePath) {
 
 /**
  * @param {string} dir
- * @returns {AsyncGenerator<Metadata, void, void>}
+ * @returns {Promise<string[]>}
  */
-async function* processDirectory(dir) {
+async function collectFiles(dir) {
   /** @type {string[]} */
   const files = await readdir(dir);
+  /** @type {string[]} */
+  const results = [];
 
-  for (const file of files) {
+  await Promise.all(files.map(async (file) => {
     /** @type {string} */
     const filePath = join(dir, file);
     /** @type {import("node:fs").Stats} */
     const stats = await stat(filePath);
 
     if (stats.isDirectory()) {
-      yield* processDirectory(filePath);
+      results.push(...await collectFiles(filePath));
     } else if (/\.(mp3|flac|wav|m4a|aac|ogg|wma)$/i.test(file)) {
-      /** @type {Metadata | null} */
-      const metadata = await getMetadata(filePath);
-      if (metadata) yield metadata;
+      results.push(filePath);
     }
+  }));
+
+  return results;
+}
+
+/**
+ * Processes files in parallel with a concurrency limit.
+ * @param {string[]} files
+ * @returns {Promise<Metadata[]>}
+ */
+async function processFiles(files) {
+  /** @type {Metadata[]} */
+  const results = [];
+  /** @type {string[]} */
+  const queue = [...files];
+
+  await Promise.allSettled(Array.from({ length: MAX_CONCURRENT }, () => worker(results, queue)));
+  return results;
+}
+
+/**
+ * @param {Metadata[]} results
+ * @param {string[]} queue
+ * @returns {Promise<void>}
+*/
+async function worker(results, queue) {
+  while (queue.length > 0) {
+    /** @type {string | null} */
+    const file = queue.pop() ?? null;
+    if (!file) return;
+
+    /** @type {Metadata | null} */
+    const metadata = await getMetadata(file);
+    if (metadata) results.push(metadata);
   }
 }
 
 // Run the script
-/** @type {AsyncGenerator<Metadata>} */
-const metadataList = processDirectory(MUSIC_DIR);
+/** @type {string[]} */
+const files = await collectFiles(MUSIC_DIR);
+
+/** @type {Metadata[]} */
+const metadataList = await processFiles(files);
 
 /**
  * @param {Metadata} entry
@@ -116,7 +154,7 @@ Sample Rate: ${sampleRate}
 
 if (!SAVE_LOG) {
   // Log results
-  for await (const entry of metadataList) {
+  for (const entry of metadataList) {
     console.log(prettyMetadata(entry));
   }
 } else {
@@ -124,7 +162,7 @@ if (!SAVE_LOG) {
 
   // Write to log file
   /** @type {string} */
-  const logData = (await Array.fromAsync(metadataList))
+  const logData = metadataList
     .map(prettyMetadata)
     .join("\n");
 
