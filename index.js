@@ -75,28 +75,24 @@ function extractMusicInfo(filePath) {
 
 /**
  * @param {string} dir
- * @returns {Promise<string[]>}
+ * @returns {AsyncGenerator<string, void, void>}
  */
-async function collectFiles(dir) {
+async function* collectFiles(dir) {
   /** @type {string[]} */
   const files = await readdir(dir);
-  /** @type {string[]} */
-  const results = [];
 
-  await Promise.all(files.map(async (file) => {
+  for (const file of files) {
     /** @type {string} */
     const filePath = join(dir, file);
     /** @type {import("node:fs").Stats} */
     const stats = await stat(filePath);
 
     if (stats.isDirectory()) {
-      results.push(...await collectFiles(filePath));
+      yield* collectFiles(filePath);
     } else if (/\.(mp3|flac|wav|m4a|aac|ogg|wma)$/i.test(file)) {
-      results.push(filePath);
+      yield filePath;
     }
-  }));
-
-  return results;
+  }
 }
 
 /**
@@ -133,7 +129,7 @@ async function worker(results, queue) {
 
 // Run the script
 /** @type {string[]} */
-const files = await collectFiles(MUSIC_DIR);
+const files = await Array.fromAsync(collectFiles(MUSIC_DIR));
 
 /** @type {Metadata[]} */
 const metadataList = await processFiles(files);
