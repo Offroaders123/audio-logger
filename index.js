@@ -6,13 +6,22 @@ import { argv } from "node:process";
 import ffprobe from "ffprobe";
 import { path as ffprobeStaticPath } from "ffprobe-static";
 
-if (argv.length !== 3) {
-  console.error("Usage: ./audio-logger <music_directory>");
+/**
+ * @returns {never}
+ */
+function exitUsage() {
+  console.error("Usage: ./audio-logger <music_directory> [-p]");
   process.exit(1);
+}
+
+if (argv.length > 4) {
+  exitUsage();
 }
 
 /** @type {string} */
 const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
+/** @type {boolean} */
+const PRETTY_OUT = argv.length === 4 && (argv.at(3) === "-p" || exitUsage());
 
 /**
  * @typedef {{
@@ -147,6 +156,14 @@ Sample Rate: ${sample_rate ?? "<unknown>"} kHz
 }
 
 // Log results
-for await (const entry of metadataList) {
-  console.log(prettyMetadata(entry));
+if (PRETTY_OUT) {
+  for await (const entry of metadataList) {
+    console.log(prettyMetadata(entry));
+  }
+} else {
+  /** @type {Metadata[]} */
+  const results = (await Array.fromAsync(metadataList));
+  /** @type {string} */
+  const json = JSON.stringify(results, null, 2);
+  console.log(json);
 }
