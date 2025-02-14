@@ -103,7 +103,7 @@ ${title} (${extension})
 ${artist} - ${album}
 Codec: ${codec}
 Bitrate: ${bitrate}
-Sample Rate: ${sampleRate}\
+Sample Rate: ${sampleRate}
 `;
 }
 
