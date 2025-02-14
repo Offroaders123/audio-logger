@@ -18,8 +18,8 @@ const MUSIC_DIR = /** @type {string} */ (process.argv[2]);
  * @typedef {{
  * path: string;
  * title: string;
- * artist: string;
- * album: string;
+ * artist?: string;
+ * album?: string;
  * extension: string;
  * codec_name: string;
  * bit_rate?: number;
@@ -65,8 +65,8 @@ async function getMetadata(filePath) {
  * @param {string} filePath
  * @returns {{
  * title: string;
- * artist: string;
- * album: string;
+ * artist?: string;
+ * album?: string;
  * }}
  */
 function extractMusicInfo(filePath) {
@@ -77,8 +77,8 @@ function extractMusicInfo(filePath) {
 
   return {
     title: basename(filePath, extname(filePath)),
-    artist: pathParts.at(-3) ?? "<artist>",
-    album: pathParts.at(-2) ?? "<album>"
+    artist: pathParts.at(-3),
+    album: pathParts.at(-2)
   };
 }
 
@@ -139,10 +139,10 @@ function prettyMetadata({
 }) {
   return `\
 ${title} (${extension})
-${artist} - ${album}
+${artist ?? "<artist>"} - ${album ?? "<album>"}
 Codec Name: ${codec_name}
-Bit Rate: ${bit_rate} kbps
-Sample Rate: ${sample_rate} kHz
+Bit Rate: ${bit_rate ?? "<unknown>"} kbps
+Sample Rate: ${sample_rate ?? "<unknown>"} kHz
 `;
 }
 
